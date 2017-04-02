@@ -35,4 +35,15 @@ class Triangle(val a : Point, val b : Point, val c : Point) extends Drawable{
         a == x || b == x || c == x
     }
 
+    def getVertices: Seq[Point] = {
+        a :: b :: c :: Nil
+    }
+
+    def nextVertexCCW(x : Point) : Point = {
+        if(x == a) b
+        else if(x == b) c
+        else if(x == c) a
+        else x
+    }
+
 }

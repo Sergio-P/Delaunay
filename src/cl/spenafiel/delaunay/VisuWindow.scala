@@ -1,5 +1,6 @@
 package cl.spenafiel.delaunay
 
+import scala.io.StdIn
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.scene.Scene
@@ -7,7 +8,8 @@ import scalafx.scene.paint.Color._
 
 object VisuWindow extends JFXApp {
 
-    val N = 50
+    print("Numero de triangulos? ")
+    val N = StdIn.readInt()
     val ti = System.currentTimeMillis()
     val points = Geometry.createRandomPoints(N)
     val triangles = Geometry.delaunay(points.toList)

@@ -25,4 +25,8 @@ class Point(val x : Double = 0, val y : Double = 0) extends Drawable{
         }
     }
 
+    override def toString: String = {
+        "(" + x.toInt + "," + y.toInt + ")"
+    }
+
 }

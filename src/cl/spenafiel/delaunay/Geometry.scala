@@ -2,6 +2,9 @@ package cl.spenafiel.delaunay
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scalafx.scene.Node
+import scalafx.scene.paint.Color
+import scalafx.scene.shape.Circle
 
 /**
   * Created by sergio on 3/25/17.
@@ -22,13 +25,14 @@ object Geometry {
     }
 
     private def circleTest(t: Triangle, target: Point): Boolean = {
-        val mab = -1 * (t.a.y - t.b.y) / (t.a.x - t.b.x)
-        val mbc = -1 * (t.b.y - t.c.y) / (t.b.x - t.c.x)
+        val mab = -1 * (t.a.x - t.b.x) / (t.a.y - t.b.y)
+        val mbc = -1 * (t.b.x - t.c.x) / (t.b.y - t.c.y)
         val nab = (t.a.y + t.b.y) / 2 - mab * (t.a.x + t.b.x) / 2
         val nbc = (t.b.y + t.c.y) / 2 - mbc * (t.b.x + t.c.x) / 2
-        val cx = (nab - nbc) / (mab - mbc)
+        val cx = (nab - nbc) / (mbc - mab)
         val cy = mab * cx + nab
-        (target.x - cx) * (target.x - cx) + (target.y - cy) * (target.y - cy) < cx * cx + cy * cy
+        val r2 = (cx - t.a.x) * (cx - t.a.x) + (cy - t.a.y) * (cy - t.a.y)
+        (target.x - cx) * (target.x - cx) + (target.y - cy) * (target.y - cy) < r2
     }
 
     private def orientation(segA: Point, segB: Point, target: Point): Double = {
@@ -41,11 +45,13 @@ object Geometry {
       * @param n The number of points
       * @return sequence of points
       */
-    def createRandomPoints(n: Int, w: Int = 600): Seq[Point] = {
-        for (_ <- 1 to n) yield new Point(Math.random() * w, Math.random() * w)
+    def createRandomPoints(n: Int, w: Int = 600): ListBuffer[Point] = {
+        val a = new ListBuffer[Point]
+        for (_ <- 1 to n) a += new Point(Math.random() * w, Math.random() * w)
+        a
     }
 
-    private def findIn(triangles: ListBuffer[Triangle], point: Point): Option[Triangle] = {
+    private def findIn(triangles: List[Triangle], point: Point): Option[Triangle] = {
         for (triangle <- triangles) {
             val (oab, obc, oca) = (orientation(triangle.a, triangle.b, point) < 0,
                 orientation(triangle.b, triangle.c, point) < 0,
@@ -109,7 +115,15 @@ object Geometry {
         def flipDiag(ot1: Option[Triangle], t2: Triangle, p: Point): Unit = {
             ot1 match {
                 case Some(t1) => if (circleTest(t1, p)) {
-                    val other = t1.getVertices.find(p => !(t2 hasVertex p)).getOrElse(t1.a)
+                    println(t1)
+                    println(t2)
+                    val optOther = t1.getVertices.find(p => !(t2 hasVertex p))
+                    if (optOther.isEmpty) {
+                        println("ERROR FATAL TRIANGULOS NO VECINOS")
+                        return
+                    }
+                    println("Diagonal flip")
+                    val other = optOther.get
                     val side1 = t1.nextVertexCCW(other)
                     val side2 = t1.nextVertexCCW(side1)
 
@@ -128,23 +142,34 @@ object Geometry {
 
                     nextTo += nt2 -> (nextPSide2, nextOtherSide2, Some(nt1))
 
+                    if(!(triangles contains t1)){
+                        println("ERROR Triangulo no válido")
+                    }
                     triangles -= t1
                     triangles -= t2
                     nextTo -= t1
                     nextTo -= t2
                     triangles += nt1
                     triangles += nt2
+
+                    flipDiag(nextOtherSide1, nt1, p)
+                    flipDiag(nextOtherSide2, nt2, p)
                 }
                 case None => ;
             }
         }
 
-        for (point <- points) {
-            val t = findIn(triangles, point)
+        def addPointToTriangulation(point : Point): Unit ={
+            val t = findIn(triangles.toList, point)
             t.map { tr =>
                 val trAB = new Triangle(tr.a, tr.b, point)
                 val trBC = new Triangle(tr.b, tr.c, point)
                 val trCA = new Triangle(tr.c, tr.a, point)
+
+                triangles += trAB
+                triangles += trBC
+                triangles += trCA
+                triangles -= tr
 
                 nextTo.get(tr).foreach { tuple =>
                     nextTo += trAB -> (Some(trBC), Some(trCA), tuple._3)
@@ -153,20 +178,46 @@ object Geometry {
                     updateNeighbour(tuple._3, trAB)
                     updateNeighbour(tuple._1, trBC)
                     updateNeighbour(tuple._2, trCA)
-                    flipDiag(tuple._3, trAB, point)
-                    flipDiag(tuple._1, trBC, point)
-                    flipDiag(tuple._2, trCA, point)
+                    if (tuple._3.isDefined && (triangles contains tuple._3.get))
+                        flipDiag(tuple._3, trAB, point)
+                    if (tuple._1.isDefined && (triangles contains tuple._1.get))
+                        flipDiag(tuple._1, trBC, point)
+                    if (tuple._2.isDefined && (triangles contains tuple._2.get))
+                        flipDiag(tuple._2, trCA, point)
                 }
 
                 nextTo -= tr
-                triangles += trAB
-                triangles += trBC
-                triangles += trCA
-                triangles -= tr
             }
         }
 
+        for (point <- points) {
+            addPointToTriangulation(point)
+        }
+
+        println("Total " + triangles.length)
         triangles.toList
+    }
+
+    def getInCircle(point : Point, triangles : Seq[Triangle]): Node ={
+        println(point)
+        val t = findIn(triangles.toList, point)
+        t.map { t =>
+            val mab = -1 * (t.a.x - t.b.x) / (t.a.y - t.b.y)
+            val mbc = -1 * (t.b.x - t.c.x) / (t.b.y - t.c.y)
+            val nab = (t.a.y + t.b.y) / 2 - mab * (t.a.x + t.b.x) / 2
+            val nbc = (t.b.y + t.c.y) / 2 - mbc * (t.b.x + t.c.x) / 2
+            val cx = (nab - nbc) / (mbc - mab)
+            val cy = mab * cx + nab
+            val r2 = (cx - t.a.x) * (cx - t.a.x) + (cy - t.a.y) * (cy - t.a.y)
+            return new Circle{
+                centerX = cx
+                centerY = cy
+                radius = math.sqrt(r2)
+                stroke = Color.Blue
+                fill = Color.Transparent
+            }
+        }
+        Circle(-1,-1,1)
     }
 
 }

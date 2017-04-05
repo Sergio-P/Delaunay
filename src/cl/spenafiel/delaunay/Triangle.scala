@@ -46,4 +46,15 @@ class Triangle(val a : Point, val b : Point, val c : Point) extends Drawable{
         else x
     }
 
+    /*override def equals(obj: scala.Any): Boolean = {
+        obj match {
+            case other : Triangle => other.a == a && other.b == b && other.c == c
+            case _ => false
+        }
+    }*/
+
+    override def toString: String = {
+        "a : " + a + ", b: " + b + ", c: " + c
+    }
+
 }

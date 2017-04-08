@@ -83,8 +83,8 @@ object Geometry {
       * @return A list of the triangles of triangulation
       */
     def delaunay(points: List[Point]): List[Triangle] = {
-        val topLeft = new Triangle(new Point(-100, -100), new Point(-100, 700), new Point(700, -100))
-        val bottomRight = new Triangle(new Point(700, 700), new Point(700, -100), new Point(-100, 700))
+        val topLeft = new Triangle(new Point(-150, -100), new Point(-150, 700), new Point(750, -100))
+        val bottomRight = new Triangle(new Point(750, 700), new Point(750, -100), new Point(-150, 700))
 
         val triangles = ListBuffer.empty[Triangle]
         triangles += topLeft
@@ -208,6 +208,13 @@ object Geometry {
 
         for (point <- points) {
             addPointToTriangulation(point)
+        }
+
+        for (triangle <- triangles){
+            if((triangle hasVertex bottomRight.a) || (triangle hasVertex bottomRight.b) ||
+                (triangle hasVertex topLeft.a) || (triangle hasVertex topLeft.b)){
+                triangles -= triangle
+            }
         }
 
         println("Total " + triangles.length)

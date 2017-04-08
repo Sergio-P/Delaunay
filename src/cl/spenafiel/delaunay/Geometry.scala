@@ -4,13 +4,14 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scalafx.scene.Node
 import scalafx.scene.paint.Color
-import scalafx.scene.shape.Circle
+import scalafx.scene.shape.{Circle, Line}
 
 /**
   * Created by sergio on 3/25/17.
   */
 object Geometry {
 
+    private var nextTo : mutable.HashMap[Triangle, (Option[Triangle], Option[Triangle], Option[Triangle])] = mutable.HashMap.empty[Triangle, (Option[Triangle], Option[Triangle], Option[Triangle])]
     /**
       * Computes distance between 2 points
       *
@@ -51,6 +52,19 @@ object Geometry {
         a
     }
 
+    /**
+      * Makes a grid if n x n points
+      *
+      * @param n The size of the grid
+      * @return sequence of points
+      */
+    def createGridPoints(n: Int, w: Int = 600): ListBuffer[Point] = {
+        val a = new ListBuffer[Point]
+        val gap = w/n
+        for (i <- 1 to n; j <- 1 to n) a += new Point(gap*(i-0.5),gap*(j-0.5))
+        a
+    }
+
     private def findIn(triangles: List[Triangle], point: Point): Option[Triangle] = {
         for (triangle <- triangles) {
             val (oab, obc, oca) = (orientation(triangle.a, triangle.b, point) < 0,
@@ -69,14 +83,14 @@ object Geometry {
       * @return A list of the triangles of triangulation
       */
     def delaunay(points: List[Point]): List[Triangle] = {
-        val topLeft = new Triangle(new Point(0, 0), new Point(0, 600), new Point(600, 0))
-        val bottomRight = new Triangle(new Point(600, 600), new Point(600, 0), new Point(0, 600))
+        val topLeft = new Triangle(new Point(-100, -100), new Point(-100, 700), new Point(700, -100))
+        val bottomRight = new Triangle(new Point(700, 700), new Point(700, -100), new Point(-100, 700))
 
         val triangles = ListBuffer.empty[Triangle]
         triangles += topLeft
         triangles += bottomRight
 
-        val nextTo = mutable.HashMap.empty[Triangle, (Option[Triangle], Option[Triangle], Option[Triangle])]
+        nextTo = mutable.HashMap.empty[Triangle, (Option[Triangle], Option[Triangle], Option[Triangle])]
         nextTo += topLeft -> (Some(bottomRight), None, None)
         nextTo += bottomRight -> (Some(topLeft), None, None)
 
@@ -92,6 +106,9 @@ object Geometry {
                 }
                 else if (!(otherTr hasVertex tr.c)) {
                     nextTo += tr -> (prev._1, prev._2, Some(otherTr))
+                }
+                else{
+                    println("ERROR ACTUALIZAR VECINO")
                 }
             }
         }
@@ -115,14 +132,11 @@ object Geometry {
         def flipDiag(ot1: Option[Triangle], t2: Triangle, p: Point): Unit = {
             ot1 match {
                 case Some(t1) => if (circleTest(t1, p)) {
-                    println(t1)
-                    println(t2)
                     val optOther = t1.getVertices.find(p => !(t2 hasVertex p))
                     if (optOther.isEmpty) {
                         println("ERROR FATAL TRIANGULOS NO VECINOS")
                         return
                     }
-                    println("Diagonal flip")
                     val other = optOther.get
                     val side1 = t1.nextVertexCCW(other)
                     val side2 = t1.nextVertexCCW(side1)
@@ -139,8 +153,12 @@ object Geometry {
                     val nextPSide2 = findWithSegment(next2, p, side2)
 
                     nextTo += nt1 -> (nextOtherSide1, nextPSide1, Some(nt2))
+                    updateNeighbour(nextOtherSide1,nt1)
+                    updateNeighbour(nextPSide1,nt1)
 
                     nextTo += nt2 -> (nextPSide2, nextOtherSide2, Some(nt1))
+                    updateNeighbour(nextPSide2,nt2)
+                    updateNeighbour(nextOtherSide2,nt2)
 
                     if(!(triangles contains t1)){
                         println("ERROR Triangulo no válido")
@@ -161,7 +179,7 @@ object Geometry {
 
         def addPointToTriangulation(point : Point): Unit ={
             val t = findIn(triangles.toList, point)
-            t.map { tr =>
+            t.foreach { tr =>
                 val trAB = new Triangle(tr.a, tr.b, point)
                 val trBC = new Triangle(tr.b, tr.c, point)
                 val trCA = new Triangle(tr.c, tr.a, point)
@@ -171,22 +189,20 @@ object Geometry {
                 triangles += trCA
                 triangles -= tr
 
-                nextTo.get(tr).foreach { tuple =>
+                val ntr = nextTo.get(tr)
+                nextTo -= tr
+
+                ntr.foreach { tuple =>
                     nextTo += trAB -> (Some(trBC), Some(trCA), tuple._3)
                     nextTo += trBC -> (Some(trCA), Some(trAB), tuple._1)
                     nextTo += trCA -> (Some(trAB), Some(trBC), tuple._2)
                     updateNeighbour(tuple._3, trAB)
                     updateNeighbour(tuple._1, trBC)
                     updateNeighbour(tuple._2, trCA)
-                    if (tuple._3.isDefined && (triangles contains tuple._3.get))
-                        flipDiag(tuple._3, trAB, point)
-                    if (tuple._1.isDefined && (triangles contains tuple._1.get))
-                        flipDiag(tuple._1, trBC, point)
-                    if (tuple._2.isDefined && (triangles contains tuple._2.get))
-                        flipDiag(tuple._2, trCA, point)
+                    flipDiag(tuple._3, trAB, point)
+                    flipDiag(tuple._1, trBC, point)
+                    flipDiag(tuple._2, trCA, point)
                 }
-
-                nextTo -= tr
             }
         }
 
@@ -218,6 +234,43 @@ object Geometry {
             }
         }
         Circle(-1,-1,1)
+    }
+
+    def getNeighs() : Seq[Node] = {
+        val s = ListBuffer.empty[Node]
+        for((tr,tp) <- nextTo){
+            if (tp._1.isDefined) {
+                println("V1 definido")
+                s += new Line {
+                    startX = tr.a.x
+                    startY = tr.a.y
+                    endX = tp._1.get.a.x
+                    endY = tp._1.get.a.y
+                    stroke = Color.Blue
+                }
+            }
+            if (tp._2.isDefined) {
+                println("V2 definido")
+                s += new Line {
+                    startX = tr.b.x
+                    startY = tr.b.y
+                    endX = tp._2.get.b.x
+                    endY = tp._2.get.b.y
+                    stroke = Color.Blue
+                }
+            }
+            if (tp._3.isDefined) {
+                println("V3 definido")
+                s += new Line {
+                    startX = tr.c.x
+                    startY = tr.c.y
+                    endX = tp._3.get.c.x
+                    endY = tp._3.get.c.y
+                    stroke = Color.Blue
+                }
+            }
+        }
+        s.toList
     }
 
 }

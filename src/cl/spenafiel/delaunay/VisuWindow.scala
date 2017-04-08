@@ -16,11 +16,11 @@ import javafx.scene.input.MouseButton
 object VisuWindow extends JFXApp {
 
     print("Numero de triangulos? ")
-    val N = 0
+    val N = 20
     val ti = System.currentTimeMillis()
     val points  = Geometry createRandomPoints N
     var triangles = Geometry delaunay points.toList
-    println("Delaunay " + N + " points takes " + (System.currentTimeMillis() - ti) + "ms")
+    println("Delaunay takes " + (System.currentTimeMillis() - ti) + "ms")
 
     val ti2 = System.currentTimeMillis
 
@@ -35,6 +35,7 @@ object VisuWindow extends JFXApp {
                 for (e <- triangles.flatMap(_.draw())) content.add(e)
                 for (e <- points.flatMap(_.draw())) content.add(e)
             }
+            draw()
             println("Drawing process takes " + (System.currentTimeMillis() - ti) + "ms")
             onMouseClicked = new EventHandler[MouseEvent] {
                 override def handle(event: MouseEvent){

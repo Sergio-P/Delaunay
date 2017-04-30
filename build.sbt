@@ -6,4 +6,4 @@ scalaVersion := "2.11.6"
 
 libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.92-R10"
 
-mainClass in (Compile, run) := Some("cl.spenafiel.delaunay.VisuWindow")
+mainClass in (Compile, run) := Some("cl.spenafiel.delaunay.ImageWindow")

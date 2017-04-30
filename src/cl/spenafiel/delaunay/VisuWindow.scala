@@ -14,7 +14,7 @@ import scalafx.Includes._
 
 object VisuWindow extends JFXApp {
 
-    val N = 0
+    val N = 1800
     val ti = System.currentTimeMillis()
     val points  = Geometry createRandomPoints N
     var triangles = Geometry delaunay points.toList

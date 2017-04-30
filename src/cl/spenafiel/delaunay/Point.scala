@@ -7,7 +7,7 @@ import scalafx.scene.shape.Circle
 /**
   * Created by sergio on 3/25/17.
   */
-class Point(val x : Double = 0, val y : Double = 0) extends Drawable{
+class Point(val x : Double = 0, val y : Double = 0, val value : Int = 0) extends Drawable{
 
     override def draw(): Seq[Node] = {
         Seq(new Circle {

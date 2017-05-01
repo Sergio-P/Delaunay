@@ -18,7 +18,7 @@ object ImageWindow extends JFXApp {
 
     private def buildImage() : Unit = {
         val N = 10
-        val imgPath = "valle_luna.png"
+        val imgPath = "sergio.png"
         ImageReader.loadImage(imgPath)
         Geometry.delaunay(List.empty[Point],removeInitial = false)
         /*for(i <- 0 to N; j <- 0 to N){
@@ -50,6 +50,11 @@ object ImageWindow extends JFXApp {
                         case MouseButton.PRIMARY => {
                             val p = new Point(event.getX.toInt, event.getY.toInt, ImageReader.getScalarValue(event.getX.toInt,event.getY.toInt))
                             Geometry.addPointToTriangulation(p)
+                            draw()
+                        }
+                        case MouseButton.SECONDARY => {
+                            val (x,y) = ImageReader.searchMaxError(Geometry.getScalar)
+                            Geometry.addPointToTriangulation(new Point(x,y,ImageReader.getScalarValue(x,y)))
                             draw()
                         }
                         case _ => ;

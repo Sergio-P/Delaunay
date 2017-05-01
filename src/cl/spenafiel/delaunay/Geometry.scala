@@ -74,9 +74,9 @@ object Geometry {
 
     private def findIn(point: Point): Option[Triangle] = {
         for (triangle <- triangles) {
-            val (oab, obc, oca) = (orientation(triangle.a, triangle.b, point) < 0,
-                orientation(triangle.b, triangle.c, point) < 0,
-                orientation(triangle.c, triangle.a, point) < 0)
+            val (oab, obc, oca) = (orientation(triangle.a, triangle.b, point) <= 0,
+                orientation(triangle.b, triangle.c, point) <= 0,
+                orientation(triangle.c, triangle.a, point) <= 0)
             if (oab == obc && obc == oca)
                 return Some(triangle)
         }

@@ -30,7 +30,7 @@ object ImageReader {
         val errR = math.abs(x%256 - y%256)
         val errG = math.abs((x/256)%256 - (y/256)%256)
         val errB = math.abs((x/256/256)%256 - (y/256/256)%256)
-        errR + errG + errB
+        math.abs(errR - errG) + math.abs(errR - errB) + math.abs(errB - errG)
     }
 
     def searchMaxError(apScalar : Array[Array[Int]]): (Int,Int) ={
@@ -47,6 +47,9 @@ object ImageReader {
             }
         }
 
+        printf("New point (%d,%d)\n", maxi, maxj)
+        printf("Original: %08x\n", scalar(maxi)(maxj))
+        printf("Current:  %08x\n", apScalar(maxi)(maxj))
         (maxi, maxj)
     }
 
